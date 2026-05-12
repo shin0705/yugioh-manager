@@ -1015,11 +1015,13 @@ class _ProfileDialogState extends State<_ProfileDialog> {
     }
 
     setState(() => _nickLoading = true);
-    final result = await _auth.updateNickname(newName);
+    final result = await _auth.updateDisplayName(newName);
     setState(() {
       _nickLoading = false;
-      _nickMessage = result;
-      _nickSuccess = result == '닉네임이 변경되었습니다.';
+      _nickMessage = result.isSuccess
+          ? '닉네임이 변경되었습니다.'
+          : (result.errorMessage ?? '오류가 발생했습니다.');
+      _nickSuccess = result.isSuccess;
     });
   }
 
@@ -1045,11 +1047,16 @@ class _ProfileDialogState extends State<_ProfileDialog> {
     }
 
     setState(() => _passLoading = true);
-    final result = await _auth.updatePassword(currentPass, newPass);
+    final result = await _auth.updatePassword(
+      currentPassword: currentPass,
+      newPassword: newPass,
+    );
     setState(() {
       _passLoading = false;
-      _passMessage = result;
-      _passSuccess = result == '비밀번호가 변경되었습니다.';
+      _passMessage = result.isSuccess
+          ? '비밀번호가 변경되었습니다.'
+          : (result.errorMessage ?? '오류가 발생했습니다.');
+      _passSuccess = result.isSuccess;
       if (_passSuccess) {
         _currentPassCtrl.clear();
         _newPassCtrl.clear();
