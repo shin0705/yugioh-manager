@@ -3,6 +3,7 @@
 import 'package:firebase_core/firebase_core.dart' show FirebaseOptions;
 import 'package:flutter/foundation.dart'
     show defaultTargetPlatform, kIsWeb, TargetPlatform;
+import 'dart:html' as html show window;
 
 /// Default [FirebaseOptions] for use with your Firebase apps.
 ///
@@ -40,15 +41,34 @@ class DefaultFirebaseOptions {
     }
   }
 
-  static const FirebaseOptions web = FirebaseOptions(
-    apiKey: 'AIzaSyBZ686oYbypjumZZHo5vL4Iqp4WxAaBO90',
-    appId: '1:157073038498:web:9c46875903bcc579eacbfb',
-    messagingSenderId: '157073038498',
-    projectId: 'yugioh-card-manager-d3164',
-    authDomain: 'yugioh-card-manager-d3164.firebaseapp.com',
-    storageBucket: 'yugioh-card-manager-d3164.firebasestorage.app',
-    measurementId: 'G-CE2S4M7GZT',
-  );
+  // 웹 설정: 환경변수에서 읽음 (빌드 타임)
+  static FirebaseOptions get web {
+    // Netlify 환경변수에서 읽음
+    final apiKey = const String.fromEnvironment('FIREBASE_API_KEY_WEB',
+        defaultValue: 'AIzaSyBZ686oYbypjumZZHo5vL4Iqp4WxAaBO90');
+    final appId = const String.fromEnvironment('FIREBASE_APP_ID_WEB',
+        defaultValue: '1:157073038498:web:9c46875903bcc579eacbfb');
+    final messagingSenderId = const String.fromEnvironment('FIREBASE_MESSAGING_SENDER_ID',
+        defaultValue: '157073038498');
+    final projectId = const String.fromEnvironment('FIREBASE_PROJECT_ID',
+        defaultValue: 'yugioh-card-manager-d3164');
+    final authDomain = const String.fromEnvironment('FIREBASE_AUTH_DOMAIN',
+        defaultValue: 'yugioh-card-manager-d3164.firebaseapp.com');
+    final storageBucket = const String.fromEnvironment('FIREBASE_STORAGE_BUCKET',
+        defaultValue: 'yugioh-card-manager-d3164.firebasestorage.app');
+    final measurementId = const String.fromEnvironment('FIREBASE_MEASUREMENT_ID',
+        defaultValue: 'G-CE2S4M7GZT');
+
+    return FirebaseOptions(
+      apiKey: apiKey,
+      appId: appId,
+      messagingSenderId: messagingSenderId,
+      projectId: projectId,
+      authDomain: authDomain,
+      storageBucket: storageBucket,
+      measurementId: measurementId,
+    );
+  }
 
   static const FirebaseOptions android = FirebaseOptions(
     apiKey: 'AIzaSyDM9qnHQ80YPPQ7shO21E2_cjYM2RgXg9g',
@@ -76,13 +96,31 @@ class DefaultFirebaseOptions {
     iosBundleId: 'com.example.yugiohManager',
   );
 
-  static const FirebaseOptions windows = FirebaseOptions(
-    apiKey: 'AIzaSyBZ686oYbypjumZZHo5vL4Iqp4WxAaBO90',
-    appId: '1:157073038498:web:6d38d9ac37c82bd7eacbfb',
-    messagingSenderId: '157073038498',
-    projectId: 'yugioh-card-manager-d3164',
-    authDomain: 'yugioh-card-manager-d3164.firebaseapp.com',
-    storageBucket: 'yugioh-card-manager-d3164.firebasestorage.app',
-    measurementId: 'G-5W4R06NX63',
-  );
+  static FirebaseOptions get windows {
+    // Netlify 환경변수에서 읽음
+    final apiKey = const String.fromEnvironment('FIREBASE_API_KEY_WEB',
+        defaultValue: 'AIzaSyBZ686oYbypjumZZHo5vL4Iqp4WxAaBO90');
+    final appId = const String.fromEnvironment('FIREBASE_APP_ID_WINDOWS',
+        defaultValue: '1:157073038498:web:6d38d9ac37c82bd7eacbfb');
+    final messagingSenderId = const String.fromEnvironment('FIREBASE_MESSAGING_SENDER_ID',
+        defaultValue: '157073038498');
+    final projectId = const String.fromEnvironment('FIREBASE_PROJECT_ID',
+        defaultValue: 'yugioh-card-manager-d3164');
+    final authDomain = const String.fromEnvironment('FIREBASE_AUTH_DOMAIN',
+        defaultValue: 'yugioh-card-manager-d3164.firebaseapp.com');
+    final storageBucket = const String.fromEnvironment('FIREBASE_STORAGE_BUCKET',
+        defaultValue: 'yugioh-card-manager-d3164.firebasestorage.app');
+    final measurementId = const String.fromEnvironment('FIREBASE_MEASUREMENT_ID_WINDOWS',
+        defaultValue: 'G-5W4R06NX63');
+
+    return FirebaseOptions(
+      apiKey: apiKey,
+      appId: appId,
+      messagingSenderId: messagingSenderId,
+      projectId: projectId,
+      authDomain: authDomain,
+      storageBucket: storageBucket,
+      measurementId: measurementId,
+    );
+  }
 }
