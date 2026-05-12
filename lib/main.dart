@@ -1,4 +1,3 @@
-// lib/main.dart
 import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_auth/firebase_auth.dart';
@@ -1005,63 +1004,39 @@ class _ProfileDialogState extends State<_ProfileDialog> {
     super.dispose();
   }
 
-  Future<void> _saveNickname() async {
+  Future<void> _updateNickname() async {
     final newName = _nickCtrl.text.trim();
     if (newName.isEmpty) {
       setState(() {
-        _nickMessage = '닉네임을 입력해주세요.';
+        _nickMessage = '닉네임을 입력하세요';
         _nickSuccess = false;
       });
       return;
     }
-    if (newName.length < 2) {
-      setState(() {
-        _nickMessage = '닉네임은 2자 이상이어야 합니다.';
-        _nickSuccess = false;
-      });
-      return;
-    }
+
+    setState(() => _nickLoading = true);
+    final result = await _auth.updateNickname(newName);
     setState(() {
-      _nickLoading = true;
-      _nickMessage = null;
+      _nickLoading = false;
+      _nickMessage = result;
+      _nickSuccess = result == '닉네임이 변경되었습니다.';
     });
-
-    final result = await _auth.updateDisplayName(newName);
-
-    if (mounted) {
-      setState(() {
-        _nickLoading = false;
-        if (result.isSuccess) {
-          _nickMessage = '닉네임이 변경되었습니다.';
-          _nickSuccess = true;
-        } else {
-          _nickMessage = result.errorMessage;
-          _nickSuccess = false;
-        }
-      });
-    }
   }
 
-  Future<void> _savePassword() async {
-    final current = _currentPassCtrl.text;
+  Future<void> _updatePassword() async {
+    final currentPass = _currentPassCtrl.text;
     final newPass = _newPassCtrl.text;
-    final confirm = _confirmPassCtrl.text;
+    final confirmPass = _confirmPassCtrl.text;
 
-    if (current.isEmpty) {
+    if (currentPass.isEmpty || newPass.isEmpty) {
       setState(() {
-        _passMessage = '현재 비밀번호를 입력해주세요.';
+        _passMessage = '비밀번호를 입력하세요';
         _passSuccess = false;
       });
       return;
     }
-    if (newPass.length < 6) {
-      setState(() {
-        _passMessage = '새 비밀번호는 6자 이상이어야 합니다.';
-        _passSuccess = false;
-      });
-      return;
-    }
-    if (newPass != confirm) {
+
+    if (newPass != confirmPass) {
       setState(() {
         _passMessage = '새 비밀번호가 일치하지 않습니다.';
         _passSuccess = false;
@@ -1069,389 +1044,247 @@ class _ProfileDialogState extends State<_ProfileDialog> {
       return;
     }
 
+    setState(() => _passLoading = true);
+    final result = await _auth.updatePassword(currentPass, newPass);
     setState(() {
-      _passLoading = true;
-      _passMessage = null;
+      _passLoading = false;
+      _passMessage = result;
+      _passSuccess = result == '비밀번호가 변경되었습니다.';
+      if (_passSuccess) {
+        _currentPassCtrl.clear();
+        _newPassCtrl.clear();
+        _confirmPassCtrl.clear();
+      }
     });
-
-    final result = await _auth.updatePassword(
-      currentPassword: current,
-      newPassword: newPass,
-    );
-
-    if (mounted) {
-      setState(() {
-        _passLoading = false;
-        if (result.isSuccess) {
-          _passMessage = '비밀번호가 변경되었습니다.';
-          _passSuccess = true;
-          _currentPassCtrl.clear();
-          _newPassCtrl.clear();
-          _confirmPassCtrl.clear();
-        } else {
-          _passMessage = result.errorMessage;
-          _passSuccess = false;
-        }
-      });
-    }
   }
 
   @override
   Widget build(BuildContext context) {
+    final bg = AppTheme.bg(context);
     final surface = AppTheme.surface(context);
-    final surfaceAlt = AppTheme.surfaceAlt(context);
-    final borderColor = AppTheme.border(context);
-    final textPrimary = AppTheme.textPrimary(context);
-    final textMuted = AppTheme.textMuted(context);
-
-    final user = FirebaseAuth.instance.currentUser;
-    final displayName = user?.displayName?.isNotEmpty == true
-        ? user!.displayName!
-        : (user?.email?.split('@').first ?? '사용자');
-    final userId =
-        user?.email?.replaceAll('@yugioh.app', '') ?? '';
+    final textPri = AppTheme.textPrimary(context);
+    final textSec = AppTheme.textSecondary(context);
+    final border = AppTheme.border(context);
 
     return Dialog(
-      backgroundColor: surface,
-      shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(16)),
-      child: ConstrainedBox(
-        constraints: const BoxConstraints(maxWidth: 420),
-        child: SingleChildScrollView(
+      backgroundColor: Colors.transparent,
+      insetPadding: const EdgeInsets.all(16),
+      child: Container(
+        decoration: BoxDecoration(
+          color: surface,
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: border),
+        ),
+        child: Padding(
           padding: const EdgeInsets.all(28),
           child: Column(
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // 헤더
-              Row(
-                children: [
-                  Container(
-                    width: 48,
-                    height: 48,
-                    decoration: BoxDecoration(
-                      gradient: const LinearGradient(
-                        colors: [
-                          Color(0xFF3B82F6),
-                          Color(0xFF7C3AED)
-                        ],
-                        begin: Alignment.topLeft,
-                        end: Alignment.bottomRight,
-                      ),
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    child: Center(
-                      child: Text(
-                        displayName.isNotEmpty
-                            ? displayName[0].toUpperCase()
-                            : '?',
-                        style: const TextStyle(
-                          color: Colors.white,
-                          fontWeight: FontWeight.w800,
-                          fontSize: 20,
-                        ),
-                      ),
-                    ),
-                  ),
-                  const SizedBox(width: 14),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment:
-                          CrossAxisAlignment.start,
-                      children: [
-                        Text('프로필 편집',
-                            style: TextStyle(
-                                color: textPrimary,
-                                fontSize: 18,
-                                fontWeight: FontWeight.w800)),
-                        const SizedBox(height: 2),
-                        Text('@$userId',
-                            style: TextStyle(
-                                color: textMuted,
-                                fontSize: 12)),
-                      ],
-                    ),
-                  ),
-                  GestureDetector(
-                    onTap: () => Navigator.pop(context),
-                    child: Container(
-                      width: 32,
-                      height: 32,
-                      decoration: BoxDecoration(
-                        color: surfaceAlt,
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                      child: Icon(Icons.close_rounded,
-                          size: 18, color: textMuted),
-                    ),
-                  ),
-                ],
+              Text(
+                '프로필 편집',
+                style: TextStyle(
+                  color: textPri,
+                  fontSize: 20,
+                  fontWeight: FontWeight.w800,
+                ),
               ),
-
-              const SizedBox(height: 24),
-              Container(height: 1, color: borderColor),
               const SizedBox(height: 24),
 
-              // ── 닉네임 변경 섹션 ──
-              Row(
-                children: [
-                  const Icon(Icons.person_outline_rounded,
-                      size: 16, color: AppColors.accent),
-                  const SizedBox(width: 6),
-                  Text('닉네임 변경',
-                      style: TextStyle(
-                          color: textPrimary,
-                          fontSize: 14,
-                          fontWeight: FontWeight.w700)),
-                ],
+              // 닉네임 섹션
+              Text(
+                '닉네임',
+                style: TextStyle(
+                  color: textPri,
+                  fontSize: 14,
+                  fontWeight: FontWeight.w600,
+                ),
               ),
-              const SizedBox(height: 10),
-              _ProfileField(
+              const SizedBox(height: 8),
+              TextField(
                 controller: _nickCtrl,
-                hint: '새 닉네임 입력',
-                prefixIcon: Icons.badge_outlined,
+                style: TextStyle(color: textPri),
+                decoration: InputDecoration(
+                  hintText: '닉네임 입력',
+                  hintStyle: TextStyle(color: textSec),
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  contentPadding: const EdgeInsets.symmetric(
+                    horizontal: 12,
+                    vertical: 10,
+                  ),
+                ),
               ),
-              const SizedBox(height: 10),
-              if (_nickMessage != null) ...[
-                _ProfileMessage(
-                    message: _nickMessage!,
-                    isSuccess: _nickSuccess),
-                const SizedBox(height: 10),
-              ],
+              const SizedBox(height: 8),
+              if (_nickMessage != null)
+                Text(
+                  _nickMessage!,
+                  style: TextStyle(
+                    color: _nickSuccess ? Colors.green : Colors.red,
+                    fontSize: 12,
+                  ),
+                ),
+              const SizedBox(height: 12),
               SizedBox(
                 width: double.infinity,
                 child: ElevatedButton(
-                  onPressed: _nickLoading ? null : _saveNickname,
+                  onPressed: _nickLoading ? null : _updateNickname,
                   style: ElevatedButton.styleFrom(
                     backgroundColor: AppColors.accent,
-                    foregroundColor: Colors.white,
-                    elevation: 0,
-                    padding:
-                        const EdgeInsets.symmetric(vertical: 12),
-                    shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(10)),
+                    disabledBackgroundColor: AppColors.accent.withOpacity(0.5),
                   ),
                   child: _nickLoading
                       ? const SizedBox(
-                          width: 18,
-                          height: 18,
+                          height: 20,
+                          width: 20,
                           child: CircularProgressIndicator(
-                              strokeWidth: 2,
-                              color: Colors.white))
-                      : const Text('닉네임 저장',
-                          style: TextStyle(
-                              fontSize: 13,
-                              fontWeight: FontWeight.w700)),
+                            strokeWidth: 2,
+                            valueColor:
+                                AlwaysStoppedAnimation(Colors.white),
+                          ),
+                        )
+                      : const Text(
+                          '닉네임 변경',
+                          style: TextStyle(color: Colors.white),
+                        ),
                 ),
               ),
+              const SizedBox(height: 28),
 
-              const SizedBox(height: 24),
-              Container(height: 1, color: borderColor),
-              const SizedBox(height: 24),
-
-              // ── 비밀번호 변경 섹션 ──
-              Row(
-                children: [
-                  const Icon(Icons.lock_outline_rounded,
-                      size: 16, color: AppColors.trap),
-                  const SizedBox(width: 6),
-                  Text('비밀번호 변경',
-                      style: TextStyle(
-                          color: textPrimary,
-                          fontSize: 14,
-                          fontWeight: FontWeight.w700)),
-                ],
+              // 비밀번호 섹션
+              Text(
+                '비밀번호 변경',
+                style: TextStyle(
+                  color: textPri,
+                  fontSize: 14,
+                  fontWeight: FontWeight.w600,
+                ),
               ),
-              const SizedBox(height: 10),
-              _ProfileField(
+              const SizedBox(height: 8),
+              TextField(
                 controller: _currentPassCtrl,
-                hint: '현재 비밀번호',
-                prefixIcon: Icons.lock_rounded,
-                obscure: _obscureCurrent,
-                suffixIcon: GestureDetector(
-                  onTap: () => setState(
-                      () => _obscureCurrent = !_obscureCurrent),
-                  child: Icon(
-                    _obscureCurrent
-                        ? Icons.visibility_outlined
-                        : Icons.visibility_off_outlined,
-                    color: textMuted,
-                    size: 18,
+                obscureText: _obscureCurrent,
+                style: TextStyle(color: textPri),
+                decoration: InputDecoration(
+                  hintText: '현재 비밀번호',
+                  hintStyle: TextStyle(color: textSec),
+                  suffixIcon: IconButton(
+                    icon: Icon(
+                      _obscureCurrent
+                          ? Icons.visibility_off
+                          : Icons.visibility,
+                      color: textSec,
+                    ),
+                    onPressed: () => setState(
+                        () => _obscureCurrent = !_obscureCurrent),
+                  ),
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  contentPadding: const EdgeInsets.symmetric(
+                    horizontal: 12,
+                    vertical: 10,
                   ),
                 ),
               ),
               const SizedBox(height: 8),
-              _ProfileField(
+              TextField(
                 controller: _newPassCtrl,
-                hint: '새 비밀번호 (6자 이상)',
-                prefixIcon: Icons.lock_open_rounded,
-                obscure: _obscureNew,
-                suffixIcon: GestureDetector(
-                  onTap: () =>
-                      setState(() => _obscureNew = !_obscureNew),
-                  child: Icon(
-                    _obscureNew
-                        ? Icons.visibility_outlined
-                        : Icons.visibility_off_outlined,
-                    color: textMuted,
-                    size: 18,
+                obscureText: _obscureNew,
+                style: TextStyle(color: textPri),
+                decoration: InputDecoration(
+                  hintText: '새 비밀번호',
+                  hintStyle: TextStyle(color: textSec),
+                  suffixIcon: IconButton(
+                    icon: Icon(
+                      _obscureNew ? Icons.visibility_off : Icons.visibility,
+                      color: textSec,
+                    ),
+                    onPressed: () =>
+                        setState(() => _obscureNew = !_obscureNew),
+                  ),
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  contentPadding: const EdgeInsets.symmetric(
+                    horizontal: 12,
+                    vertical: 10,
                   ),
                 ),
               ),
               const SizedBox(height: 8),
-              _ProfileField(
+              TextField(
                 controller: _confirmPassCtrl,
-                hint: '새 비밀번호 확인',
-                prefixIcon: Icons.lock_open_rounded,
-                obscure: _obscureConfirm,
-                suffixIcon: GestureDetector(
-                  onTap: () => setState(
-                      () => _obscureConfirm = !_obscureConfirm),
-                  child: Icon(
-                    _obscureConfirm
-                        ? Icons.visibility_outlined
-                        : Icons.visibility_off_outlined,
-                    color: textMuted,
-                    size: 18,
+                obscureText: _obscureConfirm,
+                style: TextStyle(color: textPri),
+                decoration: InputDecoration(
+                  hintText: '새 비밀번호 확인',
+                  hintStyle: TextStyle(color: textSec),
+                  suffixIcon: IconButton(
+                    icon: Icon(
+                      _obscureConfirm
+                          ? Icons.visibility_off
+                          : Icons.visibility,
+                      color: textSec,
+                    ),
+                    onPressed: () => setState(
+                        () => _obscureConfirm = !_obscureConfirm),
+                  ),
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  contentPadding: const EdgeInsets.symmetric(
+                    horizontal: 12,
+                    vertical: 10,
                   ),
                 ),
               ),
-              const SizedBox(height: 10),
-              if (_passMessage != null) ...[
-                _ProfileMessage(
-                    message: _passMessage!,
-                    isSuccess: _passSuccess),
-                const SizedBox(height: 10),
-              ],
+              const SizedBox(height: 8),
+              if (_passMessage != null)
+                Text(
+                  _passMessage!,
+                  style: TextStyle(
+                    color: _passSuccess ? Colors.green : Colors.red,
+                    fontSize: 12,
+                  ),
+                ),
+              const SizedBox(height: 12),
               SizedBox(
                 width: double.infinity,
                 child: ElevatedButton(
-                  onPressed: _passLoading ? null : _savePassword,
+                  onPressed: _passLoading ? null : _updatePassword,
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: AppColors.trap,
-                    foregroundColor: Colors.white,
-                    elevation: 0,
-                    padding:
-                        const EdgeInsets.symmetric(vertical: 12),
-                    shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(10)),
+                    backgroundColor: AppColors.accent,
+                    disabledBackgroundColor: AppColors.accent.withOpacity(0.5),
                   ),
                   child: _passLoading
                       ? const SizedBox(
-                          width: 18,
-                          height: 18,
+                          height: 20,
+                          width: 20,
                           child: CircularProgressIndicator(
-                              strokeWidth: 2,
-                              color: Colors.white))
-                      : const Text('비밀번호 변경',
-                          style: TextStyle(
-                              fontSize: 13,
-                              fontWeight: FontWeight.w700)),
+                            strokeWidth: 2,
+                            valueColor:
+                                AlwaysStoppedAnimation(Colors.white),
+                          ),
+                        )
+                      : const Text(
+                          '비밀번호 변경',
+                          style: TextStyle(color: Colors.white),
+                        ),
+                ),
+              ),
+              const SizedBox(height: 16),
+              SizedBox(
+                width: double.infinity,
+                child: OutlinedButton(
+                  onPressed: () => Navigator.pop(context),
+                  child: const Text('닫기'),
                 ),
               ),
             ],
           ),
         ),
-      ),
-    );
-  }
-}
-
-class _ProfileField extends StatelessWidget {
-  final TextEditingController controller;
-  final String hint;
-  final IconData prefixIcon;
-  final bool obscure;
-  final Widget? suffixIcon;
-
-  const _ProfileField({
-    required this.controller,
-    required this.hint,
-    required this.prefixIcon,
-    this.obscure = false,
-    this.suffixIcon,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    final textPrimary = AppTheme.textPrimary(context);
-    final textMuted = AppTheme.textMuted(context);
-    final surfaceAlt = AppTheme.surfaceAlt(context);
-    final borderColor = AppTheme.border(context);
-
-    return TextField(
-      controller: controller,
-      obscureText: obscure,
-      style: TextStyle(color: textPrimary, fontSize: 13),
-      decoration: InputDecoration(
-        hintText: hint,
-        hintStyle: TextStyle(color: textMuted, fontSize: 13),
-        prefixIcon:
-            Icon(prefixIcon, color: textMuted, size: 17),
-        suffixIcon: suffixIcon,
-        filled: true,
-        fillColor: surfaceAlt,
-        isDense: true,
-        contentPadding: const EdgeInsets.symmetric(
-            horizontal: 14, vertical: 12),
-        border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(10),
-          borderSide: BorderSide(color: borderColor),
-        ),
-        enabledBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(10),
-          borderSide: BorderSide(color: borderColor),
-        ),
-        focusedBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(10),
-          borderSide: const BorderSide(
-              color: AppColors.accent, width: 1.5),
-        ),
-      ),
-    );
-  }
-}
-
-class _ProfileMessage extends StatelessWidget {
-  final String message;
-  final bool isSuccess;
-
-  const _ProfileMessage(
-      {required this.message, required this.isSuccess});
-
-  @override
-  Widget build(BuildContext context) {
-    final color =
-        isSuccess ? AppColors.magic : Colors.redAccent;
-    final bg = isSuccess
-        ? const Color(0xFFECFDF5)
-        : const Color(0xFFFEE2E2);
-    final icon = isSuccess
-        ? Icons.check_circle_outline_rounded
-        : Icons.error_outline_rounded;
-
-    return Container(
-      width: double.infinity,
-      padding:
-          const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-      decoration: BoxDecoration(
-        color: bg,
-        borderRadius: BorderRadius.circular(8),
-        border:
-            Border.all(color: color.withOpacity(0.3)),
-      ),
-      child: Row(
-        children: [
-          Icon(icon, color: color, size: 15),
-          const SizedBox(width: 8),
-          Expanded(
-            child: Text(message,
-                style: TextStyle(
-                    color: color,
-                    fontSize: 12,
-                    fontWeight: FontWeight.w500)),
-          ),
-        ],
       ),
     );
   }
