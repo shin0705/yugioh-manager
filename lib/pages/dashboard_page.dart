@@ -454,7 +454,7 @@ class _DonutChart extends StatelessWidget {
                   ),
                 ),
               ],
-            );
+            ),
           );
         }).toList(),
       ],
