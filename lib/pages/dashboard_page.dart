@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'dart:math' as math;
 import '../services/firestore_service.dart';
 import '../main.dart' show AppColors, AppTheme;
 
@@ -100,6 +101,16 @@ class DashboardPage extends StatelessWidget {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
+                      // ── 하이라이트 카드 ──
+                      _HighlightCard(
+                        totalCards: totalCards,
+                        monsterCount: monsterCount,
+                        magicCount: magicCount,
+                        trapCount: trapCount,
+                      ),
+
+                      const SizedBox(height: 28),
+
                       // ── 총계 카드 4개 ──
                       Row(children: [
                         _StatCard(
@@ -135,17 +146,13 @@ class DashboardPage extends StatelessWidget {
                               icon: Icons.category_rounded,
                               child: subTypeCount.isEmpty
                                   ? _EmptyState('카드를 추가해보세요')
-                                  : Column(
-                                      children: subTypeCount.entries
-                                          .toList()
-                                          .sorted()
-                                          .map((e) => _BarRow(
-                                                label: e.key,
-                                                count: e.value,
-                                                total: totalCards,
-                                                color: AppColors.accent,
-                                              ))
-                                          .toList(),
+                                  : _DonutChart(
+                                      data: subTypeCount,
+                                      colors: [
+                                        AppColors.monster,
+                                        AppColors.magic,
+                                        AppColors.trap,
+                                      ],
                                     ),
                             ),
                           ),
@@ -221,6 +228,304 @@ class DashboardPage extends StatelessWidget {
 extension SortedEntries on List<MapEntry<String, int>> {
   List<MapEntry<String, int>> sorted() =>
       this..sort((a, b) => b.value.compareTo(a.value));
+}
+
+// ── 하이라이트 카드 ──────────────────────────────────────────
+class _HighlightCard extends StatelessWidget {
+  final int totalCards;
+  final int monsterCount;
+  final int magicCount;
+  final int trapCount;
+
+  const _HighlightCard({
+    required this.totalCards,
+    required this.monsterCount,
+    required this.magicCount,
+    required this.trapCount,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final ctx = context;
+    return Container(
+      padding: const EdgeInsets.all(24),
+      decoration: BoxDecoration(
+        color: ctx.surface,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: ctx.border),
+        boxShadow: [BoxShadow(
+          color: Colors.black.withOpacity(ctx.isDark ? 0.3 : 0.08),
+          blurRadius: 12, offset: const Offset(0, 4))],
+      ),
+      child: Row(
+        children: [
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  '총 $totalCards장의 카드를',
+                  style: TextStyle(
+                    color: ctx.textPri,
+                    fontSize: 18,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+                Text(
+                  '보유하고 있어요!',
+                  style: TextStyle(
+                    color: ctx.textPri,
+                    fontSize: 18,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+                const SizedBox(height: 16),
+                Wrap(
+                  spacing: 16,
+                  runSpacing: 12,
+                  children: [
+                    _MiniStat(
+                      icon: Icons.catching_pokemon_rounded,
+                      color: AppColors.monster,
+                      label: '몬스터',
+                      value: '$monsterCount',
+                    ),
+                    _MiniStat(
+                      icon: Icons.auto_fix_high_rounded,
+                      color: AppColors.magic,
+                      label: '마법',
+                      value: '$magicCount',
+                    ),
+                    _MiniStat(
+                      icon: Icons.warning_amber_rounded,
+                      color: AppColors.trap,
+                      label: '함정',
+                      value: '$trapCount',
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(width: 24),
+          Container(
+            width: 120,
+            height: 120,
+            decoration: BoxDecoration(
+              color: AppColors.accent.withOpacity(0.1),
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: Icon(
+              Icons.style_rounded,
+              size: 60,
+              color: AppColors.accent.withOpacity(0.5),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+// ── 미니 스탯 ──────────────────────────────────────────────────
+class _MiniStat extends StatelessWidget {
+  final IconData icon;
+  final Color color;
+  final String label;
+  final String value;
+
+  const _MiniStat({
+    required this.icon,
+    required this.color,
+    required this.label,
+    required this.value,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final ctx = context;
+    return Column(
+      children: [
+        Container(
+          width: 32,
+          height: 32,
+          decoration: BoxDecoration(
+            color: color.withOpacity(0.2),
+            borderRadius: BorderRadius.circular(8),
+          ),
+          child: Icon(icon, color: color, size: 16),
+        ),
+        const SizedBox(height: 4),
+        Text(value,
+          style: TextStyle(
+            color: ctx.textPri,
+            fontSize: 14,
+            fontWeight: FontWeight.w700,
+          )),
+        Text(label,
+          style: TextStyle(
+            color: ctx.textMut,
+            fontSize: 11,
+          )),
+      ],
+    );
+  }
+}
+
+// ── 도넛 차트 ──────────────────────────────────────────────────
+class _DonutChart extends StatelessWidget {
+  final Map<String, int> data;
+  final List<Color> colors;
+
+  const _DonutChart({
+    required this.data,
+    required this.colors,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final ctx = context;
+    final total = data.values.fold<int>(0, (a, b) => a + b);
+    final sortedEntries = data.entries.toList()..sort((a, b) => b.value.compareTo(a.value));
+
+    return Column(
+      children: [
+        SizedBox(
+          height: 180,
+          child: Stack(
+            alignment: Alignment.center,
+            children: [
+              CustomPaint(
+                size: const Size(180, 180),
+                painter: _DonutChartPainter(
+                  data: sortedEntries,
+                  colors: colors,
+                ),
+              ),
+              Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Text(
+                    '총 $total장',
+                    style: TextStyle(
+                      color: ctx.textPri,
+                      fontSize: 18,
+                      fontWeight: FontWeight.w800,
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ),
+        const SizedBox(height: 20),
+        ...sortedEntries.asMap().entries.map((entry) {
+          final index = entry.key;
+          final item = entry.value;
+          final percentage = ((item.value / total) * 100).toStringAsFixed(1);
+          return Padding(
+            padding: const EdgeInsets.only(bottom: 12),
+            child: Row(
+              children: [
+                Container(
+                  width: 12,
+                  height: 12,
+                  decoration: BoxDecoration(
+                    color: colors[index % colors.length],
+                    borderRadius: BorderRadius.circular(2),
+                  ),
+                ),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: Text(
+                    item.key,
+                    style: TextStyle(
+                      color: ctx.textSec,
+                      fontSize: 12,
+                    ),
+                  ),
+                ),
+                Text(
+                  '${item.value}장 ($percentage%)',
+                  style: TextStyle(
+                    color: ctx.textPri,
+                    fontSize: 12,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ],
+            );
+          );
+        }).toList(),
+      ],
+    );
+  }
+}
+
+// ── 도넛 차트 페인터 ─────────────────────────────────────────
+class _DonutChartPainter extends CustomPainter {
+  final List<MapEntry<String, int>> data;
+  final List<Color> colors;
+
+  _DonutChartPainter({
+    required this.data,
+    required this.colors,
+  });
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final center = Offset(size.width / 2, size.height / 2);
+    final radius = math.min(size.width, size.height) / 2;
+    final innerRadius = radius * 0.6;
+    final outerRadius = radius * 0.95;
+
+    final total = data.fold<int>(0, (sum, item) => sum + item.value);
+    var currentAngle = -math.pi / 2;
+
+    for (var i = 0; i < data.length; i++) {
+      final item = data[i];
+      final sweepAngle = (item.value / total) * 2 * math.pi;
+      final color = colors[i % colors.length];
+
+      final paint = Paint()
+        ..color = color
+        ..style = PaintingStyle.fill;
+
+      final path = Path();
+      final startAngle = currentAngle;
+      final endAngle = currentAngle + sweepAngle;
+
+      // 외부 호
+      path.arcTo(
+        Rect.fromCircle(center: center, radius: outerRadius),
+        startAngle,
+        sweepAngle,
+        false,
+      );
+
+      // 내부 호 (반대 방향)
+      path.arcTo(
+        Rect.fromCircle(center: center, radius: innerRadius),
+        endAngle,
+        -sweepAngle,
+        false,
+      );
+
+      path.close();
+      canvas.drawPath(path, paint);
+
+      currentAngle = endAngle;
+    }
+
+    // 중앙 배경 (흰색 원)
+    final centerPaint = Paint()
+      ..color = Colors.white.withOpacity(0.1)
+      ..style = PaintingStyle.fill;
+    canvas.drawCircle(center, innerRadius, centerPaint);
+  }
+
+  @override
+  bool shouldRepaint(_DonutChartPainter oldDelegate) => false;
 }
 
 // ── 통계 카드 ─────────────────────────────────────────────────
