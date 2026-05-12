@@ -1,0 +1,6 @@
+[build]
+  command = "bash scripts/install_flutter.sh && flutter build web --release --dart-define=FLUTTER_WEB_USE_SKIA=false"
+  publish = "build/web"
+
+[build.environment]
+  FLUTTER_VERSION = "stable"
